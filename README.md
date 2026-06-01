@@ -40,19 +40,16 @@ Products: mean-reverting HYDROGEL (≈10,000) and VELVETFRUIT_EXTRACT (≈5,250)
 Analysis infrastructure: IV fitting ([`analysis/iv_analysis.py`](rounds/R3/work/analysis/iv_analysis.py)), no-arb checks (no executable arb found), flow regression (R² < 0.005, dropped), per-day stability testing. See [`findings.md`](rounds/R3/work/findings.md) for the full signal audit.
 
 ### Round 4 — Counterparty Intelligence
-New mechanic: `Trade.buyer` / `Trade.seller` now expose named counterparty IDs. Flavor clue pointed to "Mark" as a suspected informed trader.
+New mechanic: `Trade.buyer` / `Trade.seller` now expose named counterparty IDs. Historical data analysis identified candidate informed traders by computing rolling hit-rates per counterparty-product pair.
 
-**Three submission variants:**
-- **Conservative** ([`trader_r4_conservative.py`](rounds/R4/trader_r4_conservative.py)): HG + VE market-making only. Voucher residual logic dropped after R3 live postmortem showed it was overfit to 3 historical days.
-- **Aggressive** ([`trader_r4_aggressive.py`](rounds/R4/trader_r4_aggressive.py)): conservative base + rolling counterparty scoring. Copy-trades counterparty only after live product-specific hit-rate validation (>55% over 30 trades).
-- **Exploit** ([`trader_r4_exploit.py`](rounds/R4/trader_r4_exploit.py)): zero-trust copy-trading; starts from no seeded IDs and builds live trust from scratch.
+**Two submission variants:**
+- **Conservative** ([`trader_r4_conservative.py`](rounds/R4/trader_r4_conservative.py)): HG + VE market-making with tightened internal risk caps and product-level circuit breakers.
+- **Aggressive** ([`trader_r4_aggressive.py`](rounds/R4/trader_r4_aggressive.py)): conservative base + rolling counterparty scoring. Copy-trades only after live product-specific hit-rate clears a validation threshold (>55% over 30 trades), building trust from zero each run.
 
-**Anti-overfit system (3 layers):**
-1. Internal risk caps far below exchange limits (e.g. HG cap=80 vs exchange limit=200)
-2. Live validation: copy-trading requires current-run hit-rate threshold
-3. Circuit breakers: product-level marked-to-mid loss stops pause new risk-opening
-
-See [`r4_results_review_and_overfit_controls.md`](rounds/R4/CODEXR4/r4_results_review_and_overfit_controls.md) for the postmortem.
+**Anti-overfit design:**
+- Internal risk caps well below exchange limits
+- Copy-trading requires live validation — no hard-coded counterparty IDs
+- Circuit breakers halt new risk-opening if marked-to-mid loss exceeds per-product threshold
 
 ---
 
@@ -79,10 +76,8 @@ rounds/
   R4/
     trader_r4_conservative.py      R4 conservative submission
     trader_r4_aggressive.py        R4 aggressive submission
-    trader_r4_exploit.py           R4 exploit submission
     CODEXR4/
       r4_research_summary.md       counterparty findings, data analysis
-      r4_results_review_and_overfit_controls.md  postmortem + anti-overfit design
 wiki/
   wiki_algorithm.md                IMC exchange mechanics reference
 ```
